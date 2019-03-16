@@ -1,17 +1,16 @@
-import React, { Component } from 'react';
-import './App.css';
-import Viewer from './viewer/viewer';
-import { OpenLayers } from './open-layers/open-layers';
-import { Route, Switch } from 'react-router-dom';
+import React, { Component } from "react";
+import "./App.css";
+import Viewer from "./viewer/viewer";
+import { OpenLayers } from "./open-layers/open-layers";
+import { Route, Switch } from "react-router-dom";
 
 class App extends Component {
-
   render() {
     return (
       <div className="App">
         <Switch>
-          <Route exact path="/" component={Viewer} />
-          <Route path="/openlayers" component={OpenLayers} />
+          {/* <Route exact path="/" component={Viewer} /> */}
+          <Route exact path="/" component={OpenLayers} />
         </Switch>
       </div>
     );
