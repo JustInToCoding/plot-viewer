@@ -1,11 +1,11 @@
-/* eslint-disable no-undef */
-import jQuery from "jquery";
-window.$ = jQuery;
-
+/* eslint-disable */
 // UMD initialization to work with CommonJS, AMD and basic browser script include
 (function(factory) {
   var L;
-  if (typeof module === "object" && typeof module.exports === "object") {
+  if (typeof define === "function" && define.amd) {
+    // AMD
+    define(["leaflet"], factory);
+  } else if (typeof module === "object" && typeof module.exports === "object") {
     // Node/CommonJS
     L = require("leaflet");
     module.exports = factory(L);
@@ -21,6 +21,7 @@ window.$ = jQuery;
     statics: {
       DateStr: function(time) {
         return new Date(time).toDateString();
+        //return new Date(time).toUTCString(); //if you want UTC time
       },
 
       TimeStr: function(time) {
@@ -31,6 +32,7 @@ window.$ = jQuery;
         var tms = time / 1000;
         var dec = (tms - Math.floor(tms)).toFixed(2).slice(1);
         var mer = "AM";
+
         if (h > 11) {
           h %= 12;
           mer = "PM";
@@ -38,7 +40,27 @@ window.$ = jQuery;
         if (h === 0) h = 12;
         if (m < 10) m = "0" + m;
         if (s < 10) s = "0" + s;
-        return h + ":" + m + ":" + s + dec + " " + mer;
+
+        (tzo = -d.getTimezoneOffset()),
+          (dif = tzo >= 0 ? "+" : "-"),
+          (pad = function(num) {
+            var norm = Math.abs(Math.floor(num));
+            return (norm < 10 ? "0" : "") + norm;
+          });
+
+        return (
+          h +
+          ":" +
+          m +
+          ":" +
+          s +
+          " " +
+          mer +
+          dif +
+          pad(tzo / 60) +
+          ":" +
+          pad(tzo % 60)
+        );
       },
 
       ParseGPX: function(gpx) {
@@ -90,9 +112,26 @@ window.$ = jQuery;
     initialize: function(startLatLng, options, feature) {
       var marker_options = options.marker || {};
 
+      this.photoHtml = "";
+      this.statusHtml = "";
+
       if (jQuery.isFunction(marker_options)) {
         marker_options = marker_options(feature);
+        if (jQuery.isFunction(marker_options.icon)) {
+          marker_options.icon = marker_options.icon(feature);
+        }
       }
+
+      if (marker_options.getPopup) {
+        marker_options.title = marker_options.getPopup(feature);
+      }
+
+      if (
+        marker_options.title === null ||
+        typeof marker_options.title === "undefined" ||
+        marker_options.title.length <= 0
+      )
+        marker_options.title = "Unknown";
 
       L.Marker.prototype.initialize.call(this, startLatLng, marker_options);
 
@@ -116,6 +155,27 @@ window.$ = jQuery;
           );
         }
       }
+
+      this.on("popupopen", function(e) {
+        var mmsi = this.feature.properties.ship.mmsi;
+        var thisShipMarker = this;
+        var shipImgUrl =
+          "http://boatbeaconapp.com/web-shipheaderfetch.php?width=150&height=75&userSubmit=0&mmsi=" +
+          mmsi +
+          "&user=1234&registered=1";
+        $.get(shipImgUrl, function(data) {
+          thisShipMarker.imgUrl = data;
+          thisShipMarker.photoHtml =
+            "<div style='width=90%%;text-align:center'>" +
+            thisShipMarker.imgUrl +
+            "</div>";
+          thisShipMarker._popup.setContent(
+            thisShipMarker.photoHtml +
+              thisShipMarker.getPopupContent() +
+              thisShipMarker.statusHtml
+          );
+        });
+      });
     },
 
     getPopupContent: function() {
@@ -126,7 +186,7 @@ window.$ = jQuery;
       return "";
     },
 
-    move: function(latLng, transitionTime) {
+    move: function(latLng, transitionTime, mystatus) {
       // Only if CSS3 transitions are supported
       if (L.DomUtil.TRANSITION) {
         if (this._icon) {
@@ -142,14 +202,37 @@ window.$ = jQuery;
         }
       }
       this.setLatLng(latLng);
+
       if (this._popup) {
+        if (
+          mystatus !== null &&
+          typeof mystatus !== "undefined" &&
+          typeof mystatus.sog !== "undefined"
+        ) {
+          var heading = mystatus.hdg;
+          this.markerStatus = mystatus;
+          this.statusHtml =
+            this._latlng.toString() +
+            "<br>SOG:" +
+            mystatus.sog +
+            "Kts HDG: " +
+            mystatus.hdg +
+            "T COG: " +
+            mystatus.cog +
+            "T" +
+            " STATUS: " +
+            mystatus.status;
+        } else {
+          this.statusHtml = this._latlng.toString();
+        }
+
         this._popup.setContent(
-          this.getPopupContent() + this._latlng.toString()
+          this.photoHtml + this.getPopupContent() + this.statusHtml
         );
       }
     },
 
-    // modify leaflet markers to add our roration code
+    // modify leaflet markers to add our rotation code
     /*
      * Based on comments by @runanet and @coomsie
      * https://github.com/CloudMade/Leaflet/issues/386
@@ -213,9 +296,11 @@ window.$ = jQuery;
       this._tickLen = tickLen;
       this._ticks = [];
       this._marker = null;
-      this._orientations = [];
+      //this._orientations = [];
+      this._status = [];
 
       var sampleTimes = geoJSON.properties.time;
+      var sampleStatus = geoJSON.properties.status; //associative array of hdng,sog,cog and status
 
       this._orientIcon = options.orientIcons;
       var previousOrientation;
@@ -234,24 +319,27 @@ window.$ = jQuery;
       if (sampleTimes.length === 1) {
         if (tmod !== 0) t += tickLen - tmod;
         this._ticks[t] = samples[0];
-        this._orientations[t] = 0;
+        //this._orientations[t] = 0;
+        this._status[t] = sampleStatus[0];
         this._startTime = t;
         this._endTime = t;
         return;
       }
 
+      this._status[t] = sampleStatus[0];
       // interpolate first tick if t not a tick time
       if (tmod !== 0) {
         rem = tickLen - tmod;
         ratio = rem / (nextSampleTime - currSampleTime);
         t += rem;
         this._ticks[t] = this._interpolatePoint(currSample, nextSample, ratio);
-        this._orientations[t] = this._directionOfPoint(currSample, nextSample);
-        previousOrientation = this._orientations[t];
+        //this._orientations[t] = this._directionOfPoint(currSample,nextSample);
+
+        //previousOrientation = this._orientations[t];
       } else {
         this._ticks[t] = currSample;
-        this._orientations[t] = this._directionOfPoint(currSample, nextSample);
-        previousOrientation = this._orientations[t];
+        //this._orientations[t] = this._directionOfPoint(currSample,nextSample);
+        //previousOrientation = this._orientations[t];
       }
 
       this._startTime = t;
@@ -259,8 +347,9 @@ window.$ = jQuery;
       while (t < nextSampleTime) {
         ratio = (t - currSampleTime) / (nextSampleTime - currSampleTime);
         this._ticks[t] = this._interpolatePoint(currSample, nextSample, ratio);
-        this._orientations[t] = this._directionOfPoint(currSample, nextSample);
-        previousOrientation = this._orientations[t];
+        //this._orientations[t] = this._directionOfPoint(currSample,nextSample);
+        //previousOrientation = this._orientations[t];
+        this._status[t] = sampleStatus[0];
         t += tickLen;
       }
 
@@ -270,6 +359,7 @@ window.$ = jQuery;
         nextSample = samples[i + 1];
         t = currSampleTime = sampleTimes[i];
         nextSampleTime = sampleTimes[i + 1];
+        this._status[t] = sampleStatus[i];
 
         tmod = t % tickLen;
         if (tmod !== 0 && nextSampleTime) {
@@ -281,59 +371,55 @@ window.$ = jQuery;
             nextSample,
             ratio
           );
-          if (nextSample) {
-            this._orientations[t] = this._directionOfPoint(
-              currSample,
-              nextSample
-            );
-            previousOrientation = this._orientations[t];
-          } else {
-            this._orientations[t] = previousOrientation;
-          }
+          /*
+                    
+                    if(nextSample){
+                        this._orientations[t] = this._directionOfPoint(currSample,nextSample);
+                        previousOrientation = this._orientations[t];
+                    } else {
+                        this._orientations[t] = previousOrientation;    
+                    }
+                    */
         } else {
           this._ticks[t] = currSample;
-          if (nextSample) {
-            this._orientations[t] = this._directionOfPoint(
-              currSample,
-              nextSample
-            );
-            previousOrientation = this._orientations[t];
-          } else {
-            this._orientations[t] = previousOrientation;
-          }
+          /*
+                    if(nextSample){
+                        this._orientations[t] = this._directionOfPoint(currSample,nextSample);
+                        previousOrientation = this._orientations[t];
+                    } else {
+                        this._orientations[t] = previousOrientation;    
+                    }
+                    */
         }
 
         t += tickLen;
         while (t < nextSampleTime) {
           ratio = (t - currSampleTime) / (nextSampleTime - currSampleTime);
-
+          this._status[t] = sampleStatus[i];
           if (nextSampleTime - currSampleTime > options.maxInterpolationTime) {
             this._ticks[t] = currSample;
-
-            if (nextSample) {
-              this._orientations[t] = this._directionOfPoint(
-                currSample,
-                nextSample
-              );
-              previousOrientation = this._orientations[t];
-            } else {
-              this._orientations[t] = previousOrientation;
-            }
+            /*
+						if(nextSample){
+                            this._orientations[t] = this._directionOfPoint(currSample,nextSample);
+                            previousOrientation = this._orientations[t];
+                        } else {
+                            this._orientations[t] = previousOrientation;    
+                        }
+                        */
           } else {
             this._ticks[t] = this._interpolatePoint(
               currSample,
               nextSample,
               ratio
             );
-            if (nextSample) {
-              this._orientations[t] = this._directionOfPoint(
-                currSample,
-                nextSample
-              );
-              previousOrientation = this._orientations[t];
-            } else {
-              this._orientations[t] = previousOrientation;
-            }
+            /*
+						if(nextSample) {
+                            this._orientations[t] = this._directionOfPoint(currSample,nextSample);
+                            previousOrientation = this._orientations[t];
+                        } else {
+                            this._orientations[t] = previousOrientation;    
+                        }
+                        */
           }
 
           t += tickLen;
@@ -446,7 +532,24 @@ window.$ = jQuery;
       //return 90;
       if (timestamp > this._endTime) timestamp = this._endTime;
       if (timestamp < this._startTime) timestamp = this._startTime;
-      return this._orientations[timestamp];
+      //return this._orientations[timestamp];
+      if (typeof this._status[timestamp] === "undefined") return 0;
+      if (this._status[timestamp].hdg >= 0 && this._status[timestamp].hdg < 360)
+        return this._status[timestamp].hdg;
+      else if (
+        this._status[timestamp].sog >= 0.2 &&
+        this._status[timestamp].cog >= 0 &&
+        this._status[timestamp].cog < 360
+      )
+        return this._status[timestamp].cog;
+      else return 0;
+      //else return this._orientations[timestamp];
+    },
+
+    statusAtTime: function(timestamp) {
+      if (timestamp > this._endTime) timestamp = this._endTime;
+      if (timestamp < this._startTime) timestamp = this._startTime;
+      return this._status[timestamp];
     },
 
     setMarker: function(timestamp, options) {
@@ -501,7 +604,7 @@ window.$ = jQuery;
           this._marker.setIconAngle(this.courseAtTime(timestamp));
         }
 
-        this._marker.move(latLng, transitionTime);
+        this._marker.move(latLng, transitionTime, this._status[timestamp]);
       }
     },
 
@@ -517,6 +620,8 @@ window.$ = jQuery;
       this.options = options || {};
 
       this._map = map;
+
+      this.markerLayer = L.layerGroup();
 
       this._tracks = [];
 
@@ -567,7 +672,7 @@ window.$ = jQuery;
       var marker = track.setMarker(timestamp, this.options);
 
       if (marker) {
-        marker.addTo(this._map);
+        marker.addTo(this.markerLayer); //this._map
 
         this._tracks.push(track);
       }
@@ -713,26 +818,20 @@ window.$ = jQuery;
     }
   });
 
-  // Simply shows all of the track points as circles.
-  // TODO: Associate circle color with the marker color.
-
+  //Simply shows all of the track points as polylines
+  //TODO: Associate circle color with the marker color.
+  //TODO: Add gps sensor offsets.
   L.Playback = L.Playback || {};
 
   L.Playback.TracksLayer = L.Class.extend({
     initialize: function(map, options) {
       var layer_options = options.layer || {};
 
+      this.layer = new L.FeatureGroup();
+
       if (jQuery.isFunction(layer_options)) {
         layer_options = layer_options(feature);
       }
-
-      if (!layer_options.pointToLayer) {
-        layer_options.pointToLayer = function(featureData, latlng) {
-          return new L.CircleMarker(latlng, { radius: 5 });
-        };
-      }
-
-      this.layer = new L.GeoJSON(null, layer_options);
 
       var overlayControl = {
         "GPS Tracks": this.layer
@@ -740,7 +839,7 @@ window.$ = jQuery;
 
       L.control
         .layers(null, overlayControl, {
-          collapsed: false
+          collapsed: false //show it
         })
         .addTo(map);
     },
@@ -754,9 +853,39 @@ window.$ = jQuery;
 
     // add new geoJSON layer
     addLayer: function(geoJSON) {
-      this.layer.addData(geoJSON);
+      if (geoJSON instanceof Array) {
+        for (var i = 0, len = geoJSON.length; i < len; i++) {
+          this.addTrack(geoJSON[i]);
+        }
+      } else {
+        this.addTrack(geoJSON);
+      }
+    },
+
+    addTrack: function(geoJSON) {
+      var boatTrack = L.polyline([], {
+        color: "red",
+        weight: 2,
+        dasharray: "2, 5"
+      });
+      var samples = geoJSON.geometry.coordinates;
+      var numSamples = samples.length;
+      var currSample, fixlat, fixlong, fixCenter;
+
+      for (var ii = 0; ii < numSamples; ii++) {
+        currSample = samples[ii];
+        fixlat = currSample[1];
+        fixlong = currSample[0];
+        fixCenter = L.latLng(fixlat, fixlong);
+        boatTrack.addLatLng(fixCenter);
+      }
+
+      //TODO: Add on click
+
+      boatTrack.addTo(this.layer);
     }
   });
+
   L.Playback = L.Playback || {};
 
   L.Playback.DateControl = L.Control.extend({
@@ -794,10 +923,38 @@ window.$ = jQuery;
       this._date.innerHTML = this.options.dateFormatFn(time);
       this._time.innerHTML = this.options.timeFormatFn(time);
 
+      // slider
+      this._slider = L.DomUtil.create("input", "slider", this._container);
+      this._slider.type = "range";
+      this._slider.min = playback.getStartTime();
+      this._slider.max = playback.getEndTime();
+      this._slider.value = playback.getTime();
+
+      var stop = L.DomEvent.stopPropagation;
+
+      L.DomEvent.on(this._slider, "click", stop)
+        .on(this._slider, "mousedown", stop)
+        .on(this._slider, "dblclick", stop)
+        .on(this._slider, "click", L.DomEvent.preventDefault)
+        //.on(this._slider, 'mousemove', L.DomEvent.preventDefault)
+        .on(this._slider, "change", onSliderChange, this)
+        .on(this._slider, "mousemove", onSliderChange, this);
+
+      function onSliderChange(e) {
+        var val = Number(e.target.value);
+        playback.setCursor(val);
+      }
       // setup callback
       playback.addCallback(function(ms) {
         self._date.innerHTML = self.options.dateFormatFn(ms);
         self._time.innerHTML = self.options.timeFormatFn(ms);
+        self._slider.value = ms;
+      });
+
+      map.on("playback:add_tracks", function() {
+        self._slider.min = playback.getStartTime();
+        self._slider.max = playback.getEndTime();
+        self._slider.value = playback.getTime();
       });
 
       return this._container;
@@ -806,7 +963,7 @@ window.$ = jQuery;
 
   L.Playback.PlayControl = L.Control.extend({
     options: {
-      position: "bottomright"
+      position: "bottomleft"
     },
 
     initialize: function(playback) {
@@ -904,6 +1061,59 @@ window.$ = jQuery;
     }
   });
 
+  L.Playback.SpeedControl = L.Control.extend({
+    options: {
+      position: "bottomleft"
+    },
+
+    initialize: function(playback) {
+      this.playback = playback;
+    },
+
+    onAdd: function(map) {
+      this._container = L.DomUtil.create(
+        "div",
+        "leaflet-control-layers leaflet-control-layers-expanded"
+      );
+
+      var self = this;
+      var playback = this.playback;
+      playback.setSpeed(playback.options.speed);
+
+      // speed value
+      var speedValue = L.DomUtil.create("div", "speedControl", this._container);
+      this._speed = L.DomUtil.create("p", "", speedValue);
+      this._speed.innerHTML = "Playback speed: x" + playback.getSpeed();
+
+      // slider
+      this._slider = L.DomUtil.create("input", "slider", this._container);
+      this._slider.type = "range";
+      this._slider.min = 1;
+      this._slider.max = 1000;
+      this._slider.value = playback.getSpeed();
+
+      var stop = L.DomEvent.stopPropagation;
+
+      L.DomEvent.on(this._slider, "click", stop)
+        .on(this._slider, "mousedown", stop)
+        .on(this._slider, "dblclick", stop)
+        .on(this._slider, "click", L.DomEvent.preventDefault)
+        //.on(this._slider, 'mousemove', L.DomEvent.preventDefault)
+        .on(this._slider, "change", onSliderChange, this)
+        .on(this._slider, "mousemove", onSliderChange, this);
+
+      function onSliderChange(e) {
+        var val = Number(e.target.value);
+        playback.setSpeed(val);
+        this._speed.innerHTML = "Playback speed: x" + playback.getSpeed();
+      }
+
+      map.on("playback:add_tracks", function() {});
+
+      return this._container;
+    }
+  });
+
   L.Playback = L.Playback.Clock.extend({
     statics: {
       MoveableMarker: L.Playback.MoveableMarker,
@@ -915,7 +1125,8 @@ window.$ = jQuery;
       TracksLayer: L.Playback.TracksLayer,
       PlayControl: L.Playback.PlayControl,
       DateControl: L.Playback.DateControl,
-      SliderControl: L.Playback.SliderControl
+      SliderControl: L.Playback.SliderControl,
+      SpeedControl: L.Playback.SpeedControl
     },
 
     options: {
@@ -961,12 +1172,20 @@ window.$ = jQuery;
 
       this.setData(geoJSON);
 
+      this._trackController.markerLayer.addTo(map);
+
       if (this.options.playControl) {
         this.playControl = new L.Playback.PlayControl(this);
         this.playControl.addTo(map);
       }
 
-      if (this.options.sliderControl) {
+      if (this.options.speed) {
+        this.speedControl = new L.Playback.SpeedControl(this);
+        this.speedControl.addTo(map);
+      }
+
+      if (false) {
+        //this.options.sliderControl)
         this.sliderControl = new L.Playback.SliderControl(this);
         this.sliderControl.addTo(map);
       }
@@ -975,6 +1194,22 @@ window.$ = jQuery;
         this.dateControl = new L.Playback.DateControl(this, options);
         this.dateControl.addTo(map);
       }
+    },
+
+    getMarkersLayer: function() {
+      return this._trackController.markerLayer;
+    },
+
+    getMarkers: function() {
+      var all_markers = [];
+      var all_tracks = this._trackController.getTracks();
+      for (var i = 0; i < all_tracks.length; i++) {
+        this._track = all_tracks[i];
+        var amarker = this._track.getMarker();
+        all_markers.push(amarker);
+      }
+
+      return all_markers;
     },
 
     clearData: function() {
@@ -1002,6 +1237,23 @@ window.$ = jQuery;
 
       if (geoJSON instanceof Array) {
         for (var i = 0, len = geoJSON.length; i < len; i++) {
+          /*var thisPlayer= this;
+                	var endlen=geoJSON.length -1;
+                	var thisgeoJSON = geoJSON[i];
+                	var thisItem=i;
+                	setTimeout(function() {
+                		thisPlayer._trackController.addTrack(new L.Playback.Track(thisgeoJSON, thisPlayer.options), ms);
+                		if  (thisItem==endlen)
+                		{
+                			thisPlayer._map.fire('playback:set:data');
+                            
+                            if (thisPlayer.options.tracksLayer) {
+                            	thisPlayer._tracksLayer.addLayer(geoJSON);
+                            } 
+                		}
+                	}, 0)
+                	*/
+
           this._trackController.addTrack(
             new L.Playback.Track(geoJSON[i], this.options),
             ms
@@ -1031,6 +1283,9 @@ window.$ = jQuery;
       }
       if (this.dateControl) {
         this._map.removeControl(this.dateControl);
+      }
+      if (this.speedControl) {
+        this._map.removeControl(this.speedControl);
       }
     }
   });

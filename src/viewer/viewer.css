@@ -1,3 +1,11 @@
 .leafletMap {
   height: 800px;
 }
+
+.side {
+}
+
+.icon {
+  height: 20px;
+  width: 20px;
+}
