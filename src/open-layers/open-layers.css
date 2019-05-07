@@ -12,24 +12,26 @@ body {
 }
 
 .side {
-  height: 300px;
+  height: 500px;
   width: 200px;
   position: absolute;
   left: 0;
   top: 20vh;
   z-index: 99999;
-  background-color: whitesmoke;
+  background-color: white;
   border-top-right-radius: 20px;
   border-bottom-right-radius: 20px;
   padding-left: 60px;
   padding-top: auto;
   padding-bottom: auto;
+  text-align: left;
 }
 
 .radios {
   display: flex;
   justify-content: center;
   flex-direction: column;
+  top: 200px;
   height: 300px;
   font-size: 20px;
   text-align: left;
@@ -41,4 +43,11 @@ body {
 
 p {
   margin: 0 0 16px 0;
+}
+
+.logo {
+  text-align: left;
+  top: 40px;
+  width: 100px;
+  height: 100px;
 }

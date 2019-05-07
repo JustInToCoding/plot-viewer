@@ -12,6 +12,8 @@ import { Fill, Stroke, Style } from "ol/style.js";
 
 import Natuur from "../Natuur";
 import Bestemmingsplan from "../Bestemmingsplan";
+import Selectie from "../Selectie";
+import Gemeentegrens from "../Gemeentegrens";
 import produce from "immer";
 
 import bij from "../images/bij.png";
@@ -19,9 +21,12 @@ import tent from "../images/tent.png";
 import tree from "../images/tree.png";
 import windmill from "../images/windmill.png";
 
+import logo from "../images/logo.png";
+
 export class OpenLayers extends PureComponent {
   map;
   currentLayer;
+  currentLayer2;
 
   constructor(props) {
     super(props);
@@ -32,15 +37,29 @@ export class OpenLayers extends PureComponent {
   }
 
   componentDidMount() {
+    const vectorSource = new VectorSource({
+      features: new GeoJSON().readFeatures(Gemeentegrens)
+    });
+    const vectorLayer = new VectorLayer({
+      source: vectorSource,
+      style: new Style({
+        stroke: new Stroke({
+          color: "rgba(0, 0, 255, 1)",
+          width: 2
+        })
+      })
+    });
+
     this.map = new Map({
       target: "map",
       layers: [
         new TileLayer({
           source: new OSM()
-        })
+        }),
+        vectorLayer
       ],
       view: new View({
-        center: [638956.992885993327945, 6826972.975618642754853], // Ongeveer midden Nederland
+        center: [638956.992885993327945, 6826972.975618642754853], // Ede
         zoom: 12
       })
     });
@@ -53,47 +72,116 @@ export class OpenLayers extends PureComponent {
         this.currentLayer = undefined;
       }
 
+      if (this.currentLayer2) {
+        this.map.removeLayer(this.currentLayer2);
+        this.currentLayer2 = undefined;
+      }
+
       if (this.state.radio === "windmolen") {
+        // const vectorSource = new VectorSource({
+        //   features: new GeoJSON().readFeatures(Selectie)
+        // });
+        // this.currentLayer = new VectorLayer({
+        //   source: vectorSource,
+        //   style: new Style({
+        //     fill: new Fill({
+        //       color: "rgba(0, 0, 255, 0.4)"
+        //     }),
+        //     stroke: new Stroke({
+        //       color: "rgba(0, 0, 255, 1.0)",
+        //       width: 2
+        //     })
+        //   })
+        // });
+        // this.map.addLayer(this.currentLayer);
+      }
+
+      if (this.state.radio === "voedselbos") {
+        let geoJson = { ...Selectie };
+        geoJson.features = Selectie.features.filter(
+          feature => feature.properties.Selectie === "Voedselbos"
+        );
+
         const vectorSource = new VectorSource({
-          features: new GeoJSON().readFeatures(Bestemmingsplan)
+          features: new GeoJSON().readFeatures(geoJson)
         });
         this.currentLayer = new VectorLayer({
           source: vectorSource,
           style: new Style({
             fill: new Fill({
-              color: "rgba(0, 0, 255, 0.4)"
-            }),
-            stroke: new Stroke({
-              color: "rgba(0, 0, 255, 1.0)",
-              width: 2
+              color: "rgba(0, 255, 0, 0.4)"
             })
           })
         });
 
         this.map.addLayer(this.currentLayer);
-      }
 
-      if (this.state.radio === "voedselbos") {
+        let geoJson2 = { ...Selectie };
+        geoJson2.features = Selectie.features.filter(
+          feature => feature.properties.Selectie !== "Voedselbos"
+        );
+
         const vectorSource2 = new VectorSource({
-          features: new GeoJSON().readFeatures(Natuur)
+          features: new GeoJSON().readFeatures(geoJson2)
         });
-        this.currentLayer = new VectorLayer({
+        this.currentLayer2 = new VectorLayer({
           source: vectorSource2,
           style: new Style({
             fill: new Fill({
+              color: "rgba(255, 0, 0, 0.4)"
+            })
+            // stroke: new Stroke({
+            //   color: "rgba(0, 255, 0, 1.0)",
+            //   width: 2
+            // })
+          })
+        });
+
+        this.map.addLayer(this.currentLayer2);
+      }
+
+      if (this.state.radio === "bijenkast") {
+        let geoJson = { ...Selectie };
+        geoJson.features = Selectie.features.filter(
+          feature => feature.properties.Selectie === "Bijenkast"
+        );
+
+        const vectorSource = new VectorSource({
+          features: new GeoJSON().readFeatures(geoJson)
+        });
+        this.currentLayer = new VectorLayer({
+          source: vectorSource,
+          style: new Style({
+            fill: new Fill({
               color: "rgba(0, 255, 0, 0.4)"
-            }),
-            stroke: new Stroke({
-              color: "rgba(0, 255, 0, 1.0)",
-              width: 2
             })
           })
         });
 
         this.map.addLayer(this.currentLayer);
-      }
 
-      if (this.state.radio === "bijenkast") {
+        let geoJson2 = { ...Selectie };
+        geoJson2.features = Selectie.features.filter(
+          feature => feature.properties.Selectie !== "Bijenkast"
+        );
+
+        const vectorSource2 = new VectorSource({
+          features: new GeoJSON().readFeatures(geoJson2)
+        });
+        this.currentLayer2 = new VectorLayer({
+          source: vectorSource2,
+          style: new Style({
+            fill: new Fill({
+              color: "rgba(255, 0, 0, 0.4)"
+            })
+            // stroke: new Stroke({
+            //   color: "rgba(0, 255, 0, 1.0)",
+            //   width: 2
+            // })
+          })
+        });
+
+        this.map.addLayer(this.currentLayer2);
       }
 
       if (this.state.radio === "camping") {
@@ -113,6 +201,8 @@ export class OpenLayers extends PureComponent {
     return (
       <div className="container">
         <div className="side">
+          <h1>Regel-Maat</h1>
+          <img src={logo} alt="Natuur" className="logo" />
           <div className="radios">
             <p>Kansen:</p>
             <div className="radio-button">
