@@ -6,24 +6,23 @@ import {
   Map,
   TileLayer,
   WMSTileLayer,
-  GeoJSON,
   LayersControl,
-  LayerGroup
+  LayerGroup,
+  ZoomControl
 } from "react-leaflet";
 import produce from "immer";
 import {
-  retrieveFeatures,
   createFeatureLayers,
   handleZoomEnd,
   handleDragEnd,
-  setState,
   initialState,
   registerWFS,
-  createWfs
+  createWfs,
+  wfsServiceDropdown
 } from "../utils/wfs-helper";
 
-import Natuur from "../Natuur";
-import Bestemmingsplan from "../Bestemmingsplan";
+import logo from "../images/BeeSpotLogo.svg";
+import locate from "../images/locate.svg";
 
 const { BaseLayer, Overlay } = LayersControl;
 
@@ -31,8 +30,6 @@ class Viewer extends PureComponent {
   mapRef = createRef();
 
   selectedLayer;
-
-  geoJson = Natuur;
 
   constructor(props) {
     super(props);
@@ -47,16 +44,89 @@ class Viewer extends PureComponent {
     registerWFS(
       this,
       createWfs(
+        "Gemeenten",
+        "https://geodata.nationaalgeoregister.nl",
+        "bestuurlijkegrenzen",
+        "bestuurlijkegrenzen:gemeenten",
+        11,
+        undefined
+      ),
+      createWfs(
         "BRP Gewaspercelen",
         "https://geodata.nationaalgeoregister.nl",
         "brpgewaspercelen",
-        "brpgewaspercelen:brpgewaspercelen"
+        "brpgewaspercelen:brpgewaspercelen",
+        14,
+        undefined
       ),
       createWfs(
         "Basis registratie Kadaster",
         "https://geodata.nationaalgeoregister.nl",
         "kadastralekaartv3",
-        "kadastralekaartv3:perceel"
+        "kadastralekaartv3:perceel",
+        14,
+        undefined
+      ),
+      createWfs(
+        "Agrarisch Areaal Nederland (AAN)",
+        "https://geodata.nationaalgeoregister.nl",
+        "aan",
+        "aan:aan",
+        14,
+        undefined
+      ),
+      createWfs(
+        "BAG",
+        "https://geodata.nationaalgeoregister.nl/",
+        "bag",
+        "bag:pand",
+        14,
+        undefined
+      ),
+      createWfs(
+        "Adressen",
+        "https://geodata.nationaalgeoregister.nl/",
+        "inspireadressen",
+        "inspireadressen:inspireadressen",
+        14,
+        undefined
+      ),
+      // Kan alleen xml
+      // createWfs(
+      //   "Fysisch Geografische Regio’s",
+      //   "https://geodata.nationaalgeoregister.nl/",
+      //   "fysischgeografischeregios",
+      //   "fysischgeografischeregios:fysischgeografischeregios"
+      // ),
+      createWfs(
+        "Bodemkaart 1:50.000",
+        "https://geodata.nationaalgeoregister.nl/",
+        "bodemkaart50000",
+        "bodemkaart50000:bodemkaart50000",
+        14,
+        undefined
+      ),
+      // createWfs(
+      //   "Bestand bodemgebruik (CBS)",
+      //   "https://geodata.nationaalgeoregister.nl/",
+      //   "bestandbodemgebruik2015",
+      //   "bestandbodemgebruik2015:bbg2015_hoofdgroep"
+      // ),
+      createWfs(
+        "Landsgrens",
+        "https://geodata.nationaalgeoregister.nl",
+        "bestuurlijkegrenzen",
+        "bestuurlijkegrenzen:landsgrens",
+        2,
+        undefined
+      ),
+      createWfs(
+        "Provincies",
+        "https://geodata.nationaalgeoregister.nl",
+        "bestuurlijkegrenzen",
+        "bestuurlijkegrenzen:provincies",
+        2,
+        undefined
       )
     );
   }
@@ -64,39 +134,45 @@ class Viewer extends PureComponent {
   handleFeatureClick = e => {
     if (this.selectedLayer) {
       this.selectedLayer.setStyle({
-        color: "blue"
+        color: "blue",
+        fillOpacity: 0
       });
     }
     this.selectedLayer = e.layer;
     this.selectedLayer.setStyle({
-      color: "red"
+      color: "red",
+      fillOpacity: 0.2
     });
 
-    console.log(e);
+    this.selectedLayer.bringToFront();
+    console.log(e.layer.feature);
+  };
+
+  locateUser = () => {
+    this.mapRef.current.leafletElement.locate({ setView: true, maxZoom: 13 });
   };
 
   render() {
     const position = [this.state.lat, this.state.lon];
     return (
       <div className="map">
-        <div className="sideBar">test</div>
-        {/* <select>
-          {Object.entries(this.state.wfsServices).map(([key, value]) => (
-            <option key={key} value={key}>
-              {value.name}
-            </option>
-          ))}
-        </select> */}
+        <img className="like-leaflet logo" src={logo} alt="logo" />
+        <div className="wfs-dropdown">{wfsServiceDropdown(this)}</div>
+        <div className="like-leaflet locate" onClick={this.locateUser}>
+          <img src={locate} alt="locate" />
+        </div>
         <Map
           center={position}
           zoom={this.state.zoom}
           onZoomEnd={handleZoomEnd(this)}
           onDragEnd={handleDragEnd(this)}
-          style={{ height: "100vh" }}
           onClick={this.handleClick}
           onLocationfound={this.handleLocationFound}
           ref={this.mapRef}
+          className="leaflet-map"
+          zoomControl={false}
         >
+          <ZoomControl position="bottomright" />
           <LayersControl position="topright">
             <BaseLayer name="OpenStreetMap">
               <TileLayer
@@ -128,7 +204,18 @@ class Viewer extends PureComponent {
                 layers="Actueel_ortho25IR"
               />
             </BaseLayer>
-            {createFeatureLayers(this, this.handleFeatureClick)}
+            <Overlay checked name="Kilometer vakken">
+              <WMSTileLayer
+                url="http://geoserver.has.nl/geoserver/food4bees/wms?"
+                layers="food4bees:kmvakmetdrachtwaardecombi_v1"
+                tiled={true}
+                transparent={true}
+                format="image/png"
+                serverType="geoserver"
+                opacity={0.9}
+                version="1.3.0"
+              />
+            </Overlay>
             <Overlay name="BRP Gewaspercelen (WMS)">
               <WMSTileLayer
                 url="https://geodata.nationaalgeoregister.nl/brpgewaspercelen/wms?"
@@ -174,10 +261,11 @@ class Viewer extends PureComponent {
                 opacity={0.8}
               />
             </Overlay>
-            <Overlay checked name="geoJson">
+            {/* <Overlay checked name="geoJson">
               <GeoJSON data={this.geoJson} />
-            </Overlay>
+            </Overlay> */}
           </LayersControl>
+          {createFeatureLayers(this, this.handleFeatureClick)}
         </Map>
       </div>
     );

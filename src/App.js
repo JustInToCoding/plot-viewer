@@ -9,8 +9,8 @@ class App extends Component {
     return (
       <div className="App">
         <Switch>
-          {/* <Route exact path="/" component={Viewer} /> */}
-          <Route exact path="/" component={OpenLayers} />
+          <Route exact path="/" component={Viewer} />
+          <Route path="/v2" component={OpenLayers} />
         </Switch>
       </div>
     );
