@@ -1,6 +1,6 @@
 {
   "name": "plot-viewer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "homepage": "https://JustInToCoding.github.io/plot-viewer",
   "dependencies": {
@@ -11,10 +11,12 @@
     "luxon": "^1.8.2",
     "moment": "^2.22.2",
     "ol": "^5.2.0",
+    "plotly.js": "^1.47.4",
     "proj4": "^2.5.0",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
     "react-leaflet": "^2.0.1",
+    "react-plotly.js": "^2.3.0",
     "react-router": "^4.3.1",
     "react-router-dom": "^4.3.1",
     "react-scripts": "2.0.3"

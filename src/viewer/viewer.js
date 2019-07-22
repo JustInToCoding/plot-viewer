@@ -8,7 +8,8 @@ import {
   WMSTileLayer,
   LayersControl,
   LayerGroup,
-  ZoomControl
+  ZoomControl,
+  AttributionControl
 } from "react-leaflet";
 import produce from "immer";
 import {
@@ -23,6 +24,7 @@ import {
 
 import logo from "../images/BeeSpotLogo.svg";
 import locate from "../images/locate.svg";
+import { Graph } from "../graph/graph";
 
 const { BaseLayer, Overlay } = LayersControl;
 
@@ -155,119 +157,130 @@ class Viewer extends PureComponent {
   render() {
     const position = [this.state.lat, this.state.lon];
     return (
-      <div className="map">
-        <img className="like-leaflet logo" src={logo} alt="logo" />
-        <div className="wfs-dropdown">{wfsServiceDropdown(this)}</div>
-        <div className="like-leaflet locate" onClick={this.locateUser}>
-          <img src={locate} alt="locate" />
-        </div>
-        <Map
-          center={position}
-          zoom={this.state.zoom}
-          onZoomEnd={handleZoomEnd(this)}
-          onDragEnd={handleDragEnd(this)}
-          onClick={this.handleClick}
-          onLocationfound={this.handleLocationFound}
-          ref={this.mapRef}
-          className="leaflet-map"
-          zoomControl={false}
-        >
-          <ZoomControl position="bottomright" />
-          <LayersControl position="topright">
-            <BaseLayer name="OpenStreetMap">
-              <TileLayer
-                attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-            </BaseLayer>
-            {/* <BaseLayer name="Test">
+      <>
+        <div className="map">
+          <div className="like-leaflet logo">
+            <img src={logo} alt="logo" />
+            {/* <header>BEESPOT</header> */}
+          </div>
+          <div className="wfs-dropdown">{wfsServiceDropdown(this)}</div>
+          <div className="like-leaflet locate" onClick={this.locateUser}>
+            <img src={locate} alt="locate" />
+          </div>
+          <Map
+            center={position}
+            zoom={this.state.zoom}
+            onZoomEnd={handleZoomEnd(this)}
+            onDragEnd={handleDragEnd(this)}
+            onClick={this.handleClick}
+            onLocationfound={this.handleLocationFound}
+            ref={this.mapRef}
+            className="leaflet-map"
+            zoomControl={false}
+            attributionControl={false}
+          >
+            <AttributionControl position="topright" />
+            <ZoomControl position="bottomright" />
+            <LayersControl position="topright">
+              <BaseLayer name="OpenStreetMap">
                 <TileLayer
-                  attribution="&amp;copy PDOK"
-                  url="https://geodata.nationaalgeoregister.nl/luchtfoto/infrarood/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=Actueel_ortho25IR&STYLE=default&TILEMATRIXSET=EPSG:3857&TILEMATRIX={z}&TILEROW={x}&TILECOL={y}&FORMAT=image%2Fpng"
+                  attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-              </BaseLayer> */}
-            <BaseLayer checked name="Luchtfoto">
-              <LayerGroup>
+              </BaseLayer>
+              {/* <BaseLayer name="Test">
+                  <TileLayer
+                    attribution="&amp;copy PDOK"
+                    url="https://geodata.nationaalgeoregister.nl/luchtfoto/infrarood/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=Actueel_ortho25IR&STYLE=default&TILEMATRIXSET=EPSG:3857&TILEMATRIX={z}&TILEROW={x}&TILECOL={y}&FORMAT=image%2Fpng"
+                  />
+                </BaseLayer> */}
+              <BaseLayer checked name="Luchtfoto">
+                <LayerGroup>
+                  <WMSTileLayer
+                    url="https://geodata.nationaalgeoregister.nl/luchtfoto/rgb/wms?"
+                    layers="Actueel_ortho25"
+                  />
+                  {/* <TileLayer
+                      url="https://geodata.nationaalgeoregister.nl/tiles/service/tms/1.0.0/lufolabels/EPSG:28992/{z}/{x}/{y}.png"
+                      tms={true}
+                    /> */}
+                </LayerGroup>
+              </BaseLayer>
+              <BaseLayer name="Luchtfoto Infrarood">
                 <WMSTileLayer
-                  url="https://geodata.nationaalgeoregister.nl/luchtfoto/rgb/wms?"
-                  layers="Actueel_ortho25"
+                  url="https://geodata.nationaalgeoregister.nl/luchtfoto/infrarood/wms?"
+                  layers="Actueel_ortho25IR"
                 />
-                {/* <TileLayer
-                    url="https://geodata.nationaalgeoregister.nl/tiles/service/tms/1.0.0/lufolabels/EPSG:28992/{z}/{x}/{y}.png"
-                    tms={true}
-                  /> */}
-              </LayerGroup>
-            </BaseLayer>
-            <BaseLayer name="Luchtfoto Infrarood">
-              <WMSTileLayer
-                url="https://geodata.nationaalgeoregister.nl/luchtfoto/infrarood/wms?"
-                layers="Actueel_ortho25IR"
-              />
-            </BaseLayer>
-            <Overlay checked name="Kilometer vakken">
-              <WMSTileLayer
-                url="http://geoserver.has.nl/geoserver/food4bees/wms?"
-                layers="food4bees:kmvakmetdrachtwaardecombi_v1"
-                tiled={true}
-                transparent={true}
-                format="image/png"
-                serverType="geoserver"
-                opacity={0.9}
-                version="1.3.0"
-              />
-            </Overlay>
-            <Overlay name="BRP Gewaspercelen (WMS)">
-              <WMSTileLayer
-                url="https://geodata.nationaalgeoregister.nl/brpgewaspercelen/wms?"
-                layers="brpgewaspercelen:brpgewaspercelen"
-                transparent={true}
-                format="image/png"
-                opacity={0.8}
-              />
-            </Overlay>
-            <Overlay name="gemiddelde toegevoegde waarde per hectare weer van voedselteelten in de akkerbouw (2011-2014)">
-              <WMSTileLayer
-                url="http://geodata.rivm.nl/geoserver/wms?"
-                layers="dank:lei_l1a_gc_akkerbvoed"
-                transparent={true}
-                format="image/png"
-                opacity={0.8}
-              />
-            </Overlay>
-            <Overlay name="Agrarisch Areaal Nederland (AAN)">
-              <WMSTileLayer
-                url="https://geodata.nationaalgeoregister.nl/aan/wms?"
-                layers="aan"
-                transparent={true}
-                format="image/png"
-                opacity={0.8}
-              />
-            </Overlay>
-            <Overlay name="Actueel Hoogtebestand Nederland 3">
-              <WMSTileLayer
-                url="https://geodata.nationaalgeoregister.nl/ahn3/wms"
-                layers="ahn3_05m_dsm"
-                transparent={true}
-                format="image/png"
-                opacity={0.8}
-              />
-            </Overlay>
-            <Overlay name="Bestand bodemgebruik">
-              <WMSTileLayer
-                url="https://geodata.nationaalgeoregister.nl/bestandbodemgebruik2015/wms"
-                layers="bbg2015"
-                transparent={true}
-                format="image/png"
-                opacity={0.8}
-              />
-            </Overlay>
-            {/* <Overlay checked name="geoJson">
-              <GeoJSON data={this.geoJson} />
-            </Overlay> */}
-          </LayersControl>
-          {createFeatureLayers(this, this.handleFeatureClick)}
-        </Map>
-      </div>
+              </BaseLayer>
+              <Overlay checked name="Kilometer vakken">
+                <WMSTileLayer
+                  url="https://geoserver.has.nl/geoserver/food4bees/wms?"
+                  layers="food4bees:kmvakmetdrachtwaardecombi_v1"
+                  tiled={true}
+                  transparent={true}
+                  format="image/png"
+                  serverType="geoserver"
+                  opacity={0.9}
+                  version="1.3.0"
+                  attribution='&amp;copy <a href="http://www.food4bees.com/">Food4Bees</a>'
+                />
+              </Overlay>
+              <Overlay name="BRP Gewaspercelen (WMS)">
+                <WMSTileLayer
+                  url="https://geodata.nationaalgeoregister.nl/brpgewaspercelen/wms?"
+                  layers="brpgewaspercelen:brpgewaspercelen"
+                  transparent={true}
+                  format="image/png"
+                  opacity={0.8}
+                />
+              </Overlay>
+              <Overlay name="gemiddelde toegevoegde waarde per hectare weer van voedselteelten in de akkerbouw (2011-2014)">
+                <WMSTileLayer
+                  url="http://geodata.rivm.nl/geoserver/wms?"
+                  layers="dank:lei_l1a_gc_akkerbvoed"
+                  transparent={true}
+                  format="image/png"
+                  opacity={0.8}
+                />
+              </Overlay>
+              <Overlay name="Agrarisch Areaal Nederland (AAN)">
+                <WMSTileLayer
+                  url="https://geodata.nationaalgeoregister.nl/aan/wms?"
+                  layers="aan"
+                  transparent={true}
+                  format="image/png"
+                  opacity={0.8}
+                />
+              </Overlay>
+              <Overlay name="Actueel Hoogtebestand Nederland 3">
+                <WMSTileLayer
+                  url="https://geodata.nationaalgeoregister.nl/ahn3/wms"
+                  layers="ahn3_05m_dsm"
+                  transparent={true}
+                  format="image/png"
+                  opacity={0.8}
+                />
+              </Overlay>
+              <Overlay name="Bestand bodemgebruik">
+                <WMSTileLayer
+                  url="https://geodata.nationaalgeoregister.nl/bestandbodemgebruik2015/wms"
+                  layers="bbg2015"
+                  transparent={true}
+                  format="image/png"
+                  opacity={0.8}
+                />
+              </Overlay>
+              {/* <Overlay checked name="geoJson">
+                <GeoJSON data={this.geoJson} />
+              </Overlay> */}
+            </LayersControl>
+            {createFeatureLayers(this, this.handleFeatureClick)}
+          </Map>
+        </div>
+        <div className="charts">
+          <Graph />
+        </div>
+      </>
     );
   }
 }

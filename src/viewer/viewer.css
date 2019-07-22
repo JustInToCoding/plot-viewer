@@ -36,14 +36,26 @@
   position: absolute;
   top: 0px;
   z-index: 999;
-  width: 50px;
   left: 0px;
+  text-align: left;
+}
+
+.logo img {
+  display: inline-block;
+  width: 50px;
+}
+
+.logo header {
+  display: inline-block;
+  font-size: 45px;
+  font-weight: bold;
+  height: 100%;
 }
 
 .like-leaflet {
   z-index: 999;
   background: #fff;
-  padding: 3px;
+  padding: 7px;
   border: 2px solid rgba(0, 0, 0, 0.2);
   background-clip: padding-box;
   box-shadow: none;
@@ -61,4 +73,18 @@
   bottom: 0px;
   width: 30px;
   height: 30px;
+}
+
+.charts {
+  z-index: 9999;
+  /* background-color: #ffffff; */
+  width: 100vw;
+  height: 40vh;
+  position: relative;
+}
+
+.js-plotly-plot,
+.plot-container {
+  height: 39vh;
+  width: 100vw;
 }
