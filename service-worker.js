@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/3.6.2/workbox-sw.js");
 
 importScripts(
-  "/plot-viewer/precache-manifest.a7d915f9bd17fad8939025f3821b2acb.js"
+  "/plot-viewer/precache-manifest.fad6c23e8ab28955bc2f9b287bd1c3bc.js"
 );
 
 workbox.clientsClaim();
