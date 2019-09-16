@@ -24,7 +24,7 @@
 
 .wfs-dropdown {
   position: absolute;
-  bottom: 20px;
+  top: 20px;
   width: 100%;
   z-index: 999;
   display: flex;
@@ -75,9 +75,23 @@
   height: 30px;
 }
 
+.buttons {
+  position: absolute;
+  width: 100%;
+  bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.buttons .like-leaflet {
+  padding: 0;
+}
+
 .charts {
   z-index: 9999;
-  /* background-color: #ffffff; */
+  background-color: #ffffff;
   width: 100vw;
   height: 40vh;
   position: relative;

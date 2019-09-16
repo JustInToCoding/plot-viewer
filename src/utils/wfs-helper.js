@@ -113,7 +113,7 @@ export function handleZoomEnd(componentContext) {
   return e => {
     const prev = componentContext.state.zoom;
     const curr = e.target.getZoom();
-    console.log(curr);
+    console.log(prev, curr);
     const minZoom =
       componentContext.state.wfsServices[
         componentContext.state.selectedWfsService

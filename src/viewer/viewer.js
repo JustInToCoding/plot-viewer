@@ -167,6 +167,12 @@ class Viewer extends PureComponent {
           <div className="like-leaflet locate" onClick={this.locateUser}>
             <img src={locate} alt="locate" />
           </div>
+          <div className="buttons">
+            <div className="">
+              <a>chart</a>
+              <a>detail</a>
+            </div>
+          </div>
           <Map
             center={position}
             zoom={this.state.zoom}
@@ -214,7 +220,7 @@ class Viewer extends PureComponent {
               </BaseLayer>
               <Overlay checked name="Kilometer vakken">
                 <WMSTileLayer
-                  url="https://geoserver.has.nl/geoserver/food4bees/wms?"
+                  url="http://geoserver.has.nl/geoserver/food4bees/wms?"
                   layers="food4bees:kmvakmetdrachtwaardecombi_v1"
                   tiled={true}
                   transparent={true}
