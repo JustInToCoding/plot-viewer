@@ -234,6 +234,14 @@ export function selectWfsService(componentContext) {
   };
 }
 
+const shorten = (value, maxLength = 18, first = 8, last = 8) => {
+  if (value.toString().length <= maxLength) return value;
+
+  const pre = value.toString().substr(0, first);
+  const app = value.toString().substr(value.length - last, last);
+  return `${pre}...${app}`;
+};
+
 export function wfsServiceDropdown(componentContext) {
   return (
     <select
@@ -244,7 +252,7 @@ export function wfsServiceDropdown(componentContext) {
       {Object.entries(componentContext.state.wfsServices).map(
         ([key, value]) => (
           <option key={key} value={key}>
-            {value.name}
+            {shorten(value.name)}
           </option>
         )
       )}

@@ -1,4 +1,5 @@
 import React, { PureComponent, createRef } from "react";
+import { Link } from "react-router-dom";
 
 import "./viewer.css";
 import "leaflet/dist/leaflet.css";
@@ -22,9 +23,12 @@ import {
   wfsServiceDropdown
 } from "../utils/wfs-helper";
 
-import logo from "../images/BeeSpotLogo.svg";
+import logo from "../images/logo-vaa.svg";
 import locate from "../images/locate.svg";
+import camera from "../images/camera.svg";
+import download from "../images/download.svg";
 import { Graph } from "../graph/graph";
+import L from "leaflet";
 
 const { BaseLayer, Overlay } = LayersControl;
 
@@ -46,19 +50,19 @@ class Viewer extends PureComponent {
     registerWFS(
       this,
       createWfs(
-        "Gemeenten",
-        "https://geodata.nationaalgeoregister.nl",
-        "bestuurlijkegrenzen",
-        "bestuurlijkegrenzen:gemeenten",
-        11,
-        undefined
-      ),
-      createWfs(
         "BRP Gewaspercelen",
         "https://geodata.nationaalgeoregister.nl",
         "brpgewaspercelen",
         "brpgewaspercelen:brpgewaspercelen",
         14,
+        undefined
+      ),
+      createWfs(
+        "Gemeenten",
+        "https://geodata.nationaalgeoregister.nl",
+        "bestuurlijkegrenzen",
+        "bestuurlijkegrenzen:gemeenten",
+        11,
         undefined
       ),
       createWfs(
@@ -151,8 +155,24 @@ class Viewer extends PureComponent {
   };
 
   locateUser = () => {
-    this.mapRef.current.leafletElement.locate({ setView: true, maxZoom: 13 });
+    this.mapRef.current.leafletElement.locate({
+      setView: true,
+      watch: true,
+      maxZoom: 17
+    });
   };
+
+  handleLocationFound = e => {
+    const map = this.mapRef.current.leafletElement;
+    var radius = e.accuracy / 2;
+    L.marker(e.latlng)
+      .addTo(map)
+      .bindPopup("You are within " + radius + " meters from this point")
+      .openPopup();
+    L.circle(e.latlng, 1).addTo(map);
+  };
+
+  async takePicture() {}
 
   render() {
     const position = [this.state.lat, this.state.lon];
@@ -167,12 +187,24 @@ class Viewer extends PureComponent {
           <div className="like-leaflet locate" onClick={this.locateUser}>
             <img src={locate} alt="locate" />
           </div>
-          <div className="buttons">
+          <div
+            className="like-leaflet install"
+            onClick={this.props.promptInstall}
+          >
+            <img src={download} alt="install" />
+          </div>
+          <Link to="/pic">
+            <div className="like-leaflet camera-button">
+              <img src={camera} alt="camera" />
+            </div>
+          </Link>
+
+          {/* <div className="buttons">
             <div className="">
               <a>chart</a>
               <a>detail</a>
             </div>
-          </div>
+          </div> */}
           <Map
             center={position}
             zoom={this.state.zoom}
@@ -188,7 +220,7 @@ class Viewer extends PureComponent {
             <AttributionControl position="topright" />
             <ZoomControl position="bottomright" />
             <LayersControl position="topright">
-              <BaseLayer name="OpenStreetMap">
+              <BaseLayer checked name="OpenStreetMap">
                 <TileLayer
                   attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -200,7 +232,7 @@ class Viewer extends PureComponent {
                     url="https://geodata.nationaalgeoregister.nl/luchtfoto/infrarood/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=Actueel_ortho25IR&STYLE=default&TILEMATRIXSET=EPSG:3857&TILEMATRIX={z}&TILEROW={x}&TILECOL={y}&FORMAT=image%2Fpng"
                   />
                 </BaseLayer> */}
-              <BaseLayer checked name="Luchtfoto">
+              <BaseLayer name="Luchtfoto">
                 <LayerGroup>
                   <WMSTileLayer
                     url="https://geodata.nationaalgeoregister.nl/luchtfoto/rgb/wms?"
@@ -218,19 +250,6 @@ class Viewer extends PureComponent {
                   layers="Actueel_ortho25IR"
                 />
               </BaseLayer>
-              <Overlay checked name="Kilometer vakken">
-                <WMSTileLayer
-                  url="http://geoserver.has.nl/geoserver/food4bees/wms?"
-                  layers="food4bees:kmvakmetdrachtwaardecombi_v1"
-                  tiled={true}
-                  transparent={true}
-                  format="image/png"
-                  serverType="geoserver"
-                  opacity={0.9}
-                  version="1.3.0"
-                  attribution='&amp;copy <a href="http://www.food4bees.com/">Food4Bees</a>'
-                />
-              </Overlay>
               <Overlay name="BRP Gewaspercelen (WMS)">
                 <WMSTileLayer
                   url="https://geodata.nationaalgeoregister.nl/brpgewaspercelen/wms?"
@@ -283,9 +302,9 @@ class Viewer extends PureComponent {
             {createFeatureLayers(this, this.handleFeatureClick)}
           </Map>
         </div>
-        <div className="charts">
+        {/* <div className="charts">
           <Graph />
-        </div>
+        </div> */}
       </>
     );
   }

@@ -1,0 +1,15 @@
+/* .canvas {
+  display: none;
+} */
+
+video.either-gif-or-video {
+  display: none;
+}
+/* @media (-webkit-video-playable-inline) {
+  img.either-gif-or-video {
+    display: none;
+  }
+  video.either-gif-or-video {
+    display: initial;
+  }
+} */
