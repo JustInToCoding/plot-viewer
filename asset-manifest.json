@@ -1,19 +1,19 @@
 {
   "files": {
     "main.css": "/plot-viewer/static/css/main.0018dd52.chunk.css",
-    "main.js": "/plot-viewer/static/js/main.6de46a74.chunk.js",
-    "main.js.map": "/plot-viewer/static/js/main.6de46a74.chunk.js.map",
+    "main.js": "/plot-viewer/static/js/main.e7421383.chunk.js",
+    "main.js.map": "/plot-viewer/static/js/main.e7421383.chunk.js.map",
     "runtime-main.js": "/plot-viewer/static/js/runtime-main.57a75c0d.js",
     "runtime-main.js.map": "/plot-viewer/static/js/runtime-main.57a75c0d.js.map",
     "static/css/2.216646db.chunk.css": "/plot-viewer/static/css/2.216646db.chunk.css",
-    "static/js/2.c00d28bf.chunk.js": "/plot-viewer/static/js/2.c00d28bf.chunk.js",
-    "static/js/2.c00d28bf.chunk.js.map": "/plot-viewer/static/js/2.c00d28bf.chunk.js.map",
+    "static/js/2.1cff6d2b.chunk.js": "/plot-viewer/static/js/2.1cff6d2b.chunk.js",
+    "static/js/2.1cff6d2b.chunk.js.map": "/plot-viewer/static/js/2.1cff6d2b.chunk.js.map",
     "index.html": "/plot-viewer/index.html",
-    "precache-manifest.5f561f7601ebb1f89d042d0225310ad3.js": "/plot-viewer/precache-manifest.5f561f7601ebb1f89d042d0225310ad3.js",
+    "precache-manifest.1a9e90d0cecb763982ccb29bdafd8c33.js": "/plot-viewer/precache-manifest.1a9e90d0cecb763982ccb29bdafd8c33.js",
     "service-worker.js": "/plot-viewer/service-worker.js",
     "static/css/2.216646db.chunk.css.map": "/plot-viewer/static/css/2.216646db.chunk.css.map",
     "static/css/main.0018dd52.chunk.css.map": "/plot-viewer/static/css/main.0018dd52.chunk.css.map",
-    "static/js/2.c00d28bf.chunk.js.LICENSE": "/plot-viewer/static/js/2.c00d28bf.chunk.js.LICENSE",
+    "static/js/2.1cff6d2b.chunk.js.LICENSE": "/plot-viewer/static/js/2.1cff6d2b.chunk.js.LICENSE",
     "static/media/bij.png": "/plot-viewer/static/media/bij.baccab47.png",
     "static/media/camera.svg": "/plot-viewer/static/media/camera.8c1ff4f8.svg",
     "static/media/download.svg": "/plot-viewer/static/media/download.dbfe7e69.svg",
@@ -26,8 +26,8 @@
   "entrypoints": [
     "static/js/runtime-main.57a75c0d.js",
     "static/css/2.216646db.chunk.css",
-    "static/js/2.c00d28bf.chunk.js",
+    "static/js/2.1cff6d2b.chunk.js",
     "static/css/main.0018dd52.chunk.css",
-    "static/js/main.6de46a74.chunk.js"
+    "static/js/main.e7421383.chunk.js"
   ]
 }
